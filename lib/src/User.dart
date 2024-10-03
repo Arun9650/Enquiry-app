@@ -1,11 +1,11 @@
 class User {
-  int empid;
-  String empname;
-  String status;
-  String empphoneno;
-  String empusername;
-  String emppassword;
-  String empemailid;
+  final int empid;
+  final String empname;
+  final String status;
+  final String empphoneno;
+  final String empusername;
+  final String emppassword;
+  final String empemailid;
 
   User({
     required this.empid,
@@ -16,6 +16,19 @@ class User {
     required this.emppassword,
     required this.empemailid,
   });
+
+  // Method to convert User object to JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'empid': empid,
+      'empname': empname,
+      'status': status,
+      'empphoneno': empphoneno,
+      'empusername': empusername,
+      'emppassword': emppassword,
+      'empemailid': empemailid,
+    };
+  }
 
   // Factory method to create a User from JSON, handling null values
   factory User.fromJson(Map<String, dynamic> json) {
