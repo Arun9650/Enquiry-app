@@ -55,7 +55,7 @@ class _UsersScreenState extends State<UsersScreen> {
     await prefs.setBool('isLoggedIn', false);
 
     // Navigate back to the login page
-    Navigator.pushReplacementNamed(context, '/');
+    Navigator.pushReplacementNamed(context, '/login');
   }
 
   String _formatEntryTime(String entryTime) {
