@@ -45,19 +45,26 @@ class _LoginScreenState extends State<LoginScreen> {
         return http.Response('Error', 408);
       });
 
+      // Check if the response is HTML
+      if (response.headers['content-type']?.contains('text/html') ?? false) {
+        _showErrorDialog(
+            'Error', 'Received HTML response. Please check the server.');
+        return;
+      }
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         User user = User.fromJson(data['user']); // Parse the user
         List<Enquiry> enquiries = (data['enquiries'] as List)
             .map((e) => Enquiry.fromJson(e))
             .toList(); // Parse the list of enquiries
-
+        print('User: ${user}');
+        print('Enquiries: ${enquiries}');
         // Save login status and user data
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setBool('isLoggedIn', true);
-        await prefs.setString('user', jsonEncode(user.toJson())); // Save user data as JSON string
-        // Optionally save enquiries if needed
-        // await prefs.setString('enquiries', jsonEncode(enquiries.map((e) => e.toJson()).toList()));
+        await prefs.setString(
+            'user', jsonEncode(user.toJson())); // Save user data as JSON string
 
         Navigator.pushReplacement(
           context,
@@ -101,31 +108,84 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Login'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: _usernameController,
-              decoration: InputDecoration(labelText: 'Username'),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.blueAccent, Colors.lightBlue],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Card(
+              elevation: 8,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Login',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blueAccent,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    TextField(
+                      controller: _usernameController,
+                      decoration: InputDecoration(
+                        labelText: 'Username',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    TextField(
+                      controller: _passwordController,
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                      obscureText: true,
+                    ),
+                    SizedBox(height: 20),
+                    _isLoading
+                        ? CircularProgressIndicator()
+                        : SizedBox(
+                            width: double.infinity, // Set width to full
+                            child: ElevatedButton(
+                              onPressed: _login,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blueAccent,
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 32, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child:
+                                  Text('Login', style: TextStyle(fontSize: 18)),
+                            ),
+                          ),
+                  ],
+                ),
+              ),
             ),
-            TextField(
-              controller: _passwordController,
-              decoration: InputDecoration(labelText: 'Password'),
-              obscureText: true,
-            ),
-            SizedBox(height: 20),
-            _isLoading
-                ? CircularProgressIndicator()
-                : ElevatedButton(
-                    onPressed: _login,
-                    child: Text('Login'),
-                  ),
-          ],
+          ),
         ),
       ),
     );

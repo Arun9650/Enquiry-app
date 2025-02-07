@@ -1,2 +1,2 @@
 // constants.dart
-const String backendBaseUrl = 'https://fluffy-sheep-swim.loca.lt';
+const String backendBaseUrl = 'backend-enquiry-production.up.railway.app';

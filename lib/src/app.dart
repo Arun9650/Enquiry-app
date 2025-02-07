@@ -20,8 +20,14 @@ void main() async {
     String? userJson = prefs.getString('user'); // Get user data as JSON string
     if (userJson != null) {
       user = User.fromJson(jsonDecode(userJson)); // Parse user data
-      // You may also want to retrieve enquiries if needed
-      // For example, you could store them in SharedPreferences as well
+      // Retrieve enquiries from SharedPreferences
+      String? enquiriesJson =
+          prefs.getString('enquiries'); // Get enquiries data as JSON string
+      if (enquiriesJson != null) {
+        enquiries = (jsonDecode(enquiriesJson) as List)
+            .map((e) => Enquiry.fromJson(e))
+            .toList(); // Parse enquiries data
+      }
     }
   }
 
@@ -49,9 +55,10 @@ class MyApp extends StatelessWidget {
           ? UsersScreen(user: user!, enquiries: enquiries)
           : LoginScreen(),
       routes: {
-        '/login': (context) =>
-            LoginScreen(), // Define the route for LoginScreen
-      }, // Show UsersScreen if logged in
+        '/login': (context) => LoginScreen(), // Add route for LoginScreen
+      },
+
+      // Show UsersScreen if logged in
     );
   }
 }

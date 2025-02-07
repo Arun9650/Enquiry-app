@@ -23,27 +23,15 @@ class _UsersScreenState extends State<UsersScreen> {
     final newEnquiry = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AddEnquiryScreen(),
+        builder: (context) =>
+            AddEnquiryScreen(user: widget.user), // Pass the User object
       ),
     );
 
     if (newEnquiry != null) {
       setState(() {
-        // Add the new enquiry to the list
-        widget.enquiries.add(
-          Enquiry(
-            enquiryid: widget.enquiries.length + 1,
-            custname: newEnquiry['custname'],
-            custphoneno: newEnquiry['custphoneno'],
-            custemailid: newEnquiry['custemailid'],
-            custaddress: newEnquiry['custaddress'],
-            latitude: newEnquiry['latitude'],
-            longitude: newEnquiry['longitude'],
-            entrytime: newEnquiry['entrytime'],
-            empname: widget.user.empname,
-            dob: "", // Add if needed
-          ),
-        );
+        widget.enquiries.clear(); // Clear the old list
+        widget.enquiries.addAll(newEnquiry); // Add the updated enquiries
       });
     }
   }
@@ -53,17 +41,30 @@ class _UsersScreenState extends State<UsersScreen> {
     // Clear the logged-in state
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isLoggedIn', false);
-
     // Navigate back to the login page
     Navigator.pushReplacementNamed(context, '/login');
   }
 
   String _formatEntryTime(String entryTime) {
     try {
+      // Parse the entryTime string
       final DateTime parsedTime = DateTime.parse(entryTime);
-      return DateFormat('MMMM dd, yyyy – hh:mm a').format(parsedTime);
+
+      // Format the time to 'MMMM dd, yyyy – hh:mm a' in 12-hour format
+      return DateFormat('dd/MM/yyyy – hh:mm a').format(parsedTime);
     } catch (e) {
-      return entryTime;
+      return entryTime; // In case of error, return the original string
+    }
+  }
+
+  String _formatDOB(String dob) {
+    try {
+      // Parse the dob as DateTime in the local timezone
+      final DateTime parsedDOB = DateTime.parse(dob).toLocal();
+      return DateFormat('dd/MM/yyyy')
+          .format(parsedDOB); // Format as 'Oct 03, 2024'
+    } catch (e) {
+      return dob; // In case of error, return the original string
     }
   }
 
@@ -84,13 +85,30 @@ class _UsersScreenState extends State<UsersScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Name: ${widget.user.empname}'),
-            Text('Phone: ${widget.user.empphoneno}'),
-            Text('Email: ${widget.user.empemailid}'),
+            // User Information Section
+            Container(
+              padding: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: Colors.blueAccent.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Name: ${widget.user.empname}',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text('Phone: ${widget.user.empphoneno}',
+                      style: TextStyle(fontSize: 16)),
+                  Text('Email: ${widget.user.empemailid}',
+                      style: TextStyle(fontSize: 16)),
+                ],
+              ),
+            ),
             SizedBox(height: 20),
             Text(
               'Enquiries:',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             Expanded(
               child: ListView.builder(
@@ -99,15 +117,24 @@ class _UsersScreenState extends State<UsersScreen> {
                   final enquiry = widget.enquiries[index];
                   return Card(
                     margin: EdgeInsets.symmetric(vertical: 10),
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     child: ListTile(
+                      contentPadding: EdgeInsets.all(16),
+                      title: Text(enquiry.custname,
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Email: ${enquiry.custemailid}'),
                           Text('Phone: ${enquiry.custphoneno}'),
-                          Text('DOB: ${_formatEntryTime(enquiry.dob)}'),
+                          Text('DOB: ${_formatDOB(enquiry.dob)}'), // Format DOB
                           Text(
                               'Entry Time: ${_formatEntryTime(enquiry.entrytime)}'),
+                          Text('Category: ${enquiry.category}'), // Added category
                         ],
                       ),
                       trailing: IconButton(
@@ -140,7 +167,6 @@ class _UsersScreenState extends State<UsersScreen> {
                           });
                         }
                       },
-                      title: Text(enquiry.custname),
                     ),
                   );
                 },
@@ -148,7 +174,7 @@ class _UsersScreenState extends State<UsersScreen> {
             ),
             Text(
               "Total Enquiries: ${widget.enquiries.length}",
-              style: TextStyle(fontSize: 20),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -157,6 +183,7 @@ class _UsersScreenState extends State<UsersScreen> {
         onPressed: _addNewEnquiry,
         child: Icon(Icons.add),
         tooltip: 'Add New Enquiry',
+        backgroundColor: Colors.blueAccent,
       ),
     );
   }

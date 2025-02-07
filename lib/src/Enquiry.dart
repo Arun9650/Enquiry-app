@@ -9,6 +9,7 @@ class Enquiry {
   final String entrytime;
   final String empname;
   final String dob;
+  final String category; // Added category field
 
   Enquiry({
     required this.enquiryid,
@@ -21,6 +22,7 @@ class Enquiry {
     required this.entrytime,
     required this.empname,
     required this.dob,
+    required this.category, // Include category in constructor
   });
 
   factory Enquiry.fromJson(Map<String, dynamic> json) {
@@ -35,6 +37,24 @@ class Enquiry {
       entrytime: json['entrytime'],
       empname: json['empname'],
       dob: json['DOB'],
+      category: json['category'] ?? '', // Handle category
     );
+  }
+
+  // Add this method to convert Enquiry to JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'enquiryid': enquiryid,
+      'custname': custname,
+      'custphoneno': custphoneno,
+      'custemailid': custemailid,
+      'custaddress': custaddress,
+      'latitude': latitude,
+      'longitude': longitude,
+      'entrytime': entrytime,
+      'empname': empname,
+      'dob': dob,
+      'category': category, // Include category in JSON
+    };
   }
 }

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'Enquiry.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:geolocator/geolocator.dart'; // Import geolocator package
 import '../utils/constant.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 
 class EnquiryDetailsScreen extends StatefulWidget {
   final Enquiry enquiry;
@@ -22,6 +25,8 @@ class _EnquiryDetailsScreenState extends State<EnquiryDetailsScreen> {
   late TextEditingController _empnameController;
   late TextEditingController _latitudeController;
   late TextEditingController _longitudeController;
+  late TextEditingController _dobController;
+  String? _selectedCategory;
 
   bool _isLoading = false; // Loading state flag
 
@@ -37,6 +42,32 @@ class _EnquiryDetailsScreenState extends State<EnquiryDetailsScreen> {
     _latitudeController = TextEditingController(text: widget.enquiry.latitude);
     _longitudeController =
         TextEditingController(text: widget.enquiry.longitude);
+
+    _selectedCategory = widget.enquiry.category;
+
+    print(widget.enquiry.dob);
+
+    try {
+      String dob = widget.enquiry.dob;
+      DateTime parsedDate;
+
+      if (dob.contains('/')) {
+        // Parse as dd/MM/yyyy
+        parsedDate = DateFormat('dd/MM/yyyy').parse(dob);
+      } else if (dob.contains('-')) {
+        // Parse as yyyy-MM-dd
+        parsedDate = DateFormat('yyyy-MM-dd').parse(dob);
+      } else {
+        throw FormatException("Unknown date format: $dob");
+      }
+
+      _dobController = TextEditingController(
+        text: DateFormat('dd/MM/yyyy').format(parsedDate),
+      );
+    } catch (e) {
+      print("Error parsing DOB: ${widget.enquiry.dob}, $e");
+      _dobController = TextEditingController(); // Set to empty if parsing fails
+    }
   }
 
   @override
@@ -48,7 +79,29 @@ class _EnquiryDetailsScreenState extends State<EnquiryDetailsScreen> {
     _empnameController.dispose();
     _latitudeController.dispose();
     _longitudeController.dispose();
+    _dobController.dispose();
     super.dispose();
+  }
+
+  // Function to show the date picker for DOB
+  Future<void> _selectDate(BuildContext context) async {
+    final List<DateTime?>? pickedDates = await showCalendarDatePicker2Dialog(
+      context: context,
+      config: CalendarDatePicker2WithActionButtonsConfig(
+        calendarType: CalendarDatePicker2Type.single,
+        firstDate: DateTime(1900),
+        lastDate: DateTime.now(),
+      ),
+      dialogSize: const Size(300, 400),
+    );
+
+    if (pickedDates != null &&
+        pickedDates.isNotEmpty &&
+        pickedDates[0] != null) {
+      setState(() {
+        _dobController.text = DateFormat('dd/MM/yyyy').format(pickedDates[0]!);
+      });
+    }
   }
 
   // Function to get current location (latitude and longitude)
@@ -99,6 +152,18 @@ class _EnquiryDetailsScreenState extends State<EnquiryDetailsScreen> {
     final String apiUrl =
         '$backendBaseUrl/enquiries/${widget.enquiry.enquiryid}';
 
+    final dob = _dobController.text;
+    if (dob.length != 10) {
+      _showErrorDialog('Please enter a complete date in dd/MM/yyyy format.');
+      return; // Stop execution if the date is incomplete
+    }
+
+    final formattedDob =
+        DateFormat('yyyy-MM-dd').format(DateFormat('dd/MM/yyyy').parse(dob));
+
+    print(_dobController.text);
+    print(formattedDob);
+
     try {
       final response = await http.put(
         Uri.parse(apiUrl),
@@ -108,11 +173,14 @@ class _EnquiryDetailsScreenState extends State<EnquiryDetailsScreen> {
         body: jsonEncode({
           'empname': _empnameController.text,
           'custname': _nameController.text,
+          'category': _selectedCategory ??
+              'Other', // {{ edit_1 }} Provide a default value for 'category'
           'custphoneno': _phoneController.text,
           'custemailid': _emailController.text,
           'custaddress': _addressController.text,
           'latitude': _latitudeController.text,
           'longitude': _longitudeController.text,
+          'DOB': formattedDob,
         }),
       );
 
@@ -120,6 +188,8 @@ class _EnquiryDetailsScreenState extends State<EnquiryDetailsScreen> {
         final updatedEnquiry = Enquiry(
           enquiryid: widget.enquiry.enquiryid,
           custname: _nameController.text,
+          category: _selectedCategory ??
+              'Other', // {{ edit_1 }} Add the required 'category' parameter
           custphoneno: _phoneController.text,
           custemailid: _emailController.text,
           custaddress: _addressController.text,
@@ -127,18 +197,42 @@ class _EnquiryDetailsScreenState extends State<EnquiryDetailsScreen> {
           longitude: widget.enquiry.longitude,
           entrytime: widget.enquiry.entrytime,
           empname: _empnameController.text,
-          dob: widget.enquiry.dob,
+          dob: _dobController.text,
         );
         Navigator.pop(context, updatedEnquiry);
       } else {
         _showErrorDialog('Failed to save changes. Please try again later.');
       }
     } catch (e) {
+      print(e);
       _showErrorDialog('An error occurred while saving the changes.');
     } finally {
       setState(() {
         _isLoading = false; // Stop loading state
       });
+    }
+  }
+
+  Future<void> launchPhoneDialer(String phoneNumber) async {
+    final Uri url = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    } else {
+      _showErrorDialog('Could not open the dialer.');
+    }
+  }
+
+  bool _validateDateFormat(String date) {
+    if (date.length != 10) {
+      return false; // Immediately return false if length is incorrect
+    }
+
+    try {
+      final parsedDate = DateFormat('dd/MM/yyyy').parseStrict(date);
+      return parsedDate
+          .isBefore(DateTime.now()); // Ensure date is not in the future
+    } catch (e) {
+      return false; // Return false if parsing fails
     }
   }
 
@@ -179,16 +273,96 @@ class _EnquiryDetailsScreenState extends State<EnquiryDetailsScreen> {
               TextField(
                 controller: _empnameController,
                 decoration: InputDecoration(labelText: 'Employee Name'),
+                readOnly: true,
               ),
               TextField(
                 controller: _nameController,
                 decoration: InputDecoration(labelText: 'Customer Name'),
               ),
-              TextField(
-                controller: _phoneController,
-                decoration: InputDecoration(labelText: 'Customer Phone'),
-                keyboardType: TextInputType.phone,
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _dobController,
+                      decoration:
+                          InputDecoration(labelText: 'Customer Date of Birth'),
+                      keyboardType: TextInputType.datetime,
+                      onEditingComplete: () {
+                        final value = _dobController.text;
+                        // Validate the entered date format after user finishes editing
+                        final bool isValidDate = _validateDateFormat(value);
+                        if (!isValidDate && value.isNotEmpty) {
+                          _showErrorDialog(
+                              'Please enter a valid date in dd/MM/yyyy format.');
+                        }
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a customer Date of Birth';
+                        }
+                        if (!_validateDateFormat(value)) {
+                          return 'Invalid Date of Birth';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.calendar_today),
+                    onPressed: () async {
+                      await _selectDate(
+                          context); // Open the date picker dialog when the icon is pressed
+                    },
+                  ),
+                ],
               ),
+
+              DropdownButtonFormField<String>(
+                value: _selectedCategory,
+                decoration: InputDecoration(labelText: 'Category'),
+                items: <String>['Cable TV', 'Internet', 'Other']
+                    .map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedCategory = newValue; // Update selected category
+                  });
+                },
+                validator: (value) {
+                  if (value == null) {
+                    return 'Please select a category';
+                  }
+                  return null;
+                },
+              ),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _phoneController,
+                      decoration: InputDecoration(labelText: 'Customer Phone'),
+                      keyboardType: TextInputType.phone,
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.phone),
+                    onPressed: () {
+                      final phoneNumber = _phoneController.text;
+                      if (phoneNumber.isNotEmpty) {
+                        launchPhoneDialer(phoneNumber);
+                      } else {
+                        _showErrorDialog('Please enter a phone number.');
+                      }
+                    },
+                  ),
+                ],
+              ),
+
               TextField(
                 controller: _emailController,
                 decoration: InputDecoration(labelText: 'Customer Email'),

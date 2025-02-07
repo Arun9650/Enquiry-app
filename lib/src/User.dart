@@ -37,9 +37,9 @@ class User {
       empname: json['empname'] ?? '', // Default value for strings
       status: json['status'] ?? '',
       empphoneno: json['empphoneno'] ?? '',
-      empusername: json['empusername'] ?? '',
-      emppassword: json['emppassword'] ?? '',
-      empemailid: json['empemailid'] ?? '',
+      empusername: json['empusername'] ?? '', // Ensure this is not null
+      emppassword: json['emppassword'] ?? '', // Ensure this is not null
+      empemailid: json['empemailid'] ?? '', // Ensure this is not null
     );
   }
 }

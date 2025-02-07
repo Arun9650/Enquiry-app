@@ -1,4 +1,4 @@
-name: flutter_application_1
+name: Enquiry
 description: A new Flutter project.
 publish_to: 'none'
 version: 0.1.0
@@ -15,6 +15,8 @@ dependencies:
   geolocator: ^11.1.0
   intl: ^0.19.0
   shared_preferences: ^2.2.3
+  calendar_date_picker2: ^1.1.7
+  flutter_launcher_icons: ^0.13.1
 
 dev_dependencies:
   flutter_test:
@@ -23,3 +25,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/icon.png"
