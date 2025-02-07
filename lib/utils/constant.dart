@@ -1,2 +1,3 @@
 // constants.dart
-const String backendBaseUrl = 'backend-enquiry-production.up.railway.app';
+const String backendBaseUrl =
+    'https://backend-enquiry-production.up.railway.app';
